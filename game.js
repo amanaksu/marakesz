@@ -4,9 +4,24 @@ let S={}; const $=s=>document.querySelector(s);
 function newGame(){const count=+$('#playerCount').value, ai=$('#aiEnabled').checked;S={players:COLORS.slice(0,count).map(([name,color],i)=>({name:['산호','파랑','황금','보라'][i],color,money:30,rugs:count===4?12:15,ai:ai&&i===1})),board:Array.from({length:N},()=>Array(N).fill(null)),assam:{x:3,y:3,dir:0},turn:0,phase:'turn',choice:0,logs:['카펫 시장이 문을 열었습니다.'],over:false};$('#setup').classList.add('hidden');$('#game').classList.remove('hidden');render()}
 function current(){return S.players[S.turn]}
 function log(t){S.logs.unshift(t);S.logs=S.logs.slice(0,7)}
+// Edge pairing tables: index = lane (column for top/bottom, row for left/right),
+// value = the lane it connects to. Top & Left: (0,1)(2,3)(4,5) swap, lane 6 self-loops.
+// Bottom & Right: lane 0 self-loops, (1,2)(3,4)(5,6) swap. Matches the arch mosaics
+// printed on the physical board (A1<->B1, C1<->D1, E1<->F1, G1 self; A1<->A2, A3<->A4,
+// A5<->A6, A7 self; B7<->C7, D7<->E7, F7<->G7, A7 self; G2<->G3, G4<->G5, G6<->G7, G1 self).
+const TOP_PAIR=[1,0,3,2,5,4,6], LEFT_PAIR=[1,0,3,2,5,4,6];
+const BOTTOM_PAIR=[0,2,1,4,3,6,5], RIGHT_PAIR=[0,2,1,4,3,6,5];
 function step(){let {x,y,dir}=S.assam;let [dx,dy]=DIRS[dir];let nx=x+dx,ny=y+dy;if(nx>=0&&nx<N&&ny>=0&&ny<N)return{x:nx,y:ny,dir};
- // Board edge turns inward: the usual Marrakech U-turn mosaic, alternating into the adjacent lane.
- if(dir===0||dir===2){dir= x<3?1:3; [dx,dy]=DIRS[dir]}else{dir=y<3?2:0;[dx,dy]=DIRS[dir]}; return{x:x+dx,y:y+dy,dir};}
+ // Board edge: Assam follows the arch mosaic printed there, swapping into the linked lane
+ // and reversing direction - except at the four "self" corners (G1 and A7, each seen from
+ // both of their edges), where the mosaic turns him 90 deg along the border instead: he
+ // stays on the same square and continues along the edge he just reached, rather than
+ // bouncing back into the grid. Leaving the board doesn't use up a movement point, so this
+ // step both re-enters and turns him.
+ if(dir===0)return x===N-1?{x,y:0,dir:3}:{x:TOP_PAIR[x],y:0,dir:2};
+ if(dir===2)return x===0?{x,y:N-1,dir:1}:{x:BOTTOM_PAIR[x],y:N-1,dir:0};
+ if(dir===1)return y===0?{x:N-1,y,dir:2}:{x:N-1,y:RIGHT_PAIR[y],dir:3};
+ return y===N-1?{x:0,y,dir:0}:{x:0,y:LEFT_PAIR[y],dir:1};}
 function connected(x,y,owner){let seen=new Set,stack=[[x,y]];while(stack.length){let[a,b]=stack.pop(),k=a+','+b;if(seen.has(k)||a<0||a>=N||b<0||b>=N||S.board[b][a]!==owner)continue;seen.add(k);DIRS.forEach(([dx,dy])=>stack.push([a+dx,b+dy]))}return seen.size}
 function roll(){S.assam.dir=(S.assam.dir+S.choice+4)%4;let d=DICe[Math.floor(Math.random()*DICe.length)];for(let i=0;i<d;i++)S.assam=step();let owner=S.board[S.assam.y][S.assam.x];let msg=`${current().name} 상인이 ${d}칸 이동했습니다.`;if(owner!==null&&owner!==S.turn){let fee=Math.min(current().money,connected(S.assam.x,S.assam.y,owner));current().money-=fee;S.players[owner].money+=fee;msg+=` ${S.players[owner].name}에게 ${fee} 디르함을 지불합니다.`}log(msg);S.phase='place';render();if(current().ai)setTimeout(aiPlace,650)}
 function validPlacements(){let out=[];let{x,y}=S.assam;for(let yy=0;yy<N;yy++)for(let xx=0;xx<N;xx++){if(Math.abs(xx-x)+Math.abs(yy-y)!==1)continue;for(const[dx,dy]of [[1,0],[0,1]]){let b=[xx+dx,yy+dy];if(b[0]>=N||b[1]>=N)continue;let vals=[S.board[yy][xx],S.board[b[1]][b[0]]];if(vals[0]!==null&&vals[0]===vals[1]&&vals[0]!==S.turn)continue;out.push([[xx,yy],b])}}return out}

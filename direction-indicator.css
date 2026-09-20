@@ -24,26 +24,46 @@
   font-size: clamp(12px, 2.1vw, 22px);
 }
 
-/* Board-edge mosaics: these show the direction Assam follows after leaving the board. */
+/* Board-edge mosaics: a small arch badge (echoing the physical board's teal
+   swirl motif) holding a solid arrow that shows the direction Assam follows
+   after his about-turn at that edge. */
 .turn-guide {
   position: absolute;
   z-index: 3;
-  display: grid;
-  place-items: center;
-  width: clamp(13px, 2.3vw, 22px);
-  height: clamp(13px, 2.3vw, 22px);
-  border-radius: 50%;
-  background: #fff2c8;
-  color: #8c3d29;
-  box-shadow: 0 1px 2px #5b371866;
-  font: 700 clamp(12px, 2.2vw, 20px)/1 sans-serif;
   pointer-events: none;
 }
+.turn-guide.top, .turn-guide.bottom {
+  height: clamp(16px, 2.6vw, 26px);
+  transform: translateX(-50%);
+}
+.turn-guide.left, .turn-guide.right {
+  width: clamp(16px, 2.6vw, 26px);
+  transform: translateY(-50%);
+}
+.turn-guide.top { top: -24px; --rot: 0deg; }
+.turn-guide.bottom { bottom: -24px; --rot: 180deg; }
+.turn-guide.left { left: -24px; --rot: 270deg; }
+.turn-guide.right { right: -24px; --rot: 90deg; }
+.turn-guide .arch {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(180deg, #8fd9d6, #2f8f93);
+  border: 1.5px solid #1f3b2a;
+  border-radius: 60% 60% 20% 20%;
+  box-shadow: 0 1px 2px #5b371866, inset 0 0 0 2px #fef6dfb3;
+}
+.turn-guide .arrow {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 7px solid #21301f;
+  transform: translate(-50%, -45%) rotate(var(--rot, 0deg));
+}
 .board { position: relative; overflow: visible; }
-.turn-guide.top { top: -22px; left: calc((var(--lane) + .5) * 100% / 7); transform: translateX(-50%); }
-.turn-guide.bottom { bottom: -22px; left: calc((var(--lane) + .5) * 100% / 7); transform: translateX(-50%); }
-.turn-guide.left { left: -22px; top: calc((var(--lane) + .5) * 100% / 7); transform: translateY(-50%); }
-.turn-guide.right { right: -22px; top: calc((var(--lane) + .5) * 100% / 7); transform: translateY(-50%); }
 
 /* Hovering a legal square previews the complete two-space rug. */
 .rug-preview {
